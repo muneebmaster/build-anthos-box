@@ -1,16 +1,35 @@
 #!/usr/bin/perl
 =head1 changelog
+2020/04/14 - 1.1
+Changelog:
+- CLI option to set the clusterlocation for stackdriver configuration (--region)
+- CLI option for help message (--help)
+
 2020/04/06 - 1.0
 Initial version
 =cut
 
 use strict;
+use Getopt::Long;
 
+# Constants And Global Variables
+my $PROGRAM = "generate-config"; 
+my $help = 0;
 my $configTemplate = "/home/ubuntu/config.yaml";
 my $configOutput   = "bundled-lb-gkeop-config.yaml";
 my $datadisk       = "gke-on-prem-data-disk.vmdk";
 my $bundleDir      = "/var/lib/gke/bundles";
 my $defaultBundle  = "gke-onprem-vsphere-1.3.0-gke.16.tgz";
+my $gcpRegion      = "us-central1";
+
+GetOptions("region=s" => \$gcpRegion,
+           "help" => \$help);
+
+if ($help)
+{
+    usage();
+    exit(0);
+}
 
 if (! -e $configTemplate)
 {
@@ -164,3 +183,8 @@ USERCLUSTER
 
 close(CONFIG);
 close(CONFIG_OUT);
+
+sub usage
+{
+
+}
