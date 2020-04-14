@@ -6,8 +6,7 @@ Initial version
 
 use strict;
 
-#my $configTemplate = "/home/ubuntu/config.yaml";
-my $configTemplate = "config.yaml";
+my $configTemplate = "/home/ubuntu/config.yaml";
 my $configOutput   = "bundled-lb-gkeop-config.yaml";
 my $datadisk       = "gke-on-prem-data-disk.vmdk";
 my $bundleDir      = "/var/lib/gke/bundles";
