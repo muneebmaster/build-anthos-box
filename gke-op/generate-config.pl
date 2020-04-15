@@ -2,8 +2,9 @@
 =head1 changelog
 2020/04/14 - 1.1
 Changelog:
-- CLI option to set the clusterlocation for stackdriver configuration (--region)
-- CLI option for help message (--help)
+- CLI option to set the clusterlocation for stackdriver configuration (-region)
+- CLI option to specify the output file (-output)
+- CLI option for help message (-help)
 
 2020/04/06 - 1.0
 Initial version
@@ -13,8 +14,7 @@ use strict;
 use Getopt::Long;
 
 # Constants And Global Variables
-my $PROGRAM = "generate-config"; 
-my $help = 0;
+my $PROGRAM        = "generate-config"; 
 my $configTemplate = "/home/ubuntu/config.yaml";
 my $configOutput   = "bundled-lb-gkeop-config.yaml";
 my $datadisk       = "gke-on-prem-data-disk.vmdk";
@@ -22,7 +22,9 @@ my $bundleDir      = "/var/lib/gke/bundles";
 my $defaultBundle  = "gke-onprem-vsphere-1.3.0-gke.16.tgz";
 my $gcpRegion      = "us-central1";
 
+my $help = 0;
 GetOptions("region=s" => \$gcpRegion,
+           "output=s" => \$configOutput,
            "help" => \$help);
 
 if ($help)
@@ -33,7 +35,7 @@ if ($help)
 
 if (! -e $configTemplate)
 {
-    die "ERROR: config.yaml not found in /home/ubuntu! Was gkeadm used to create the Admin Workstation?";
+    die "ERROR: config.yaml not found in /home/ubuntu! Was gkeadm used to create the Admin Workstation?\n";
 }
 
 open (CONFIG, $configTemplate) or die "ERROR: Failed to open config.yaml: $!\n";
@@ -175,7 +177,7 @@ USERCLUSTER
     else
     {
         $line =~ s/:\s+.*?$/: Bundled/ if ($line =~ /^lbmode:/);
-        $line =~ s/:\s+.*?$/: us-central1/ if ($line =~ /^\s+clusterlocation:/);
+        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterlocation:/);
 
         print CONFIG_OUT $line . "\n";
     }
@@ -186,5 +188,37 @@ close(CONFIG_OUT);
 
 sub usage
 {
+    print <<END_USAGE;
+Usage:
+    $PROGRAM
+
+Optional Arguments:
+    -region
+        The GCP region where Stackdriver logs and metrics will be stored for this Anthos cluster.
+        Default: us-central1
+
+    -output
+        Full path of the output configuration file. 
+        Default: bundled-lb-gkeop-config.yaml
+
+    -help
+        Displays this usage message.
+
+Program Description:
+    Simple tool that reads the gkeadm generated config.yaml and modifies it for the build-anthos-box demo.
+    It assumes that gkeadm was used to generate the admin workstation, so expects to find
+    /home/ubuntu/config.yaml and gke-op install bundles in /var/lib/gke/bundles. By default, the output
+    configuration file is generated in cwd named bundled-lb-gkeop-config.yaml unless otherwise specified
+    with the output option.
+
+Usage Examples:
+    $PROGRAM
+    $PROGRAM -region northamerica-northeast1
+
+Author:
+    Muneeb Master
+    Google, Inc.
+
+END_USAGE
 
 }
