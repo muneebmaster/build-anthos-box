@@ -186,6 +186,8 @@ USERCLUSTER
 close(CONFIG);
 close(CONFIG_OUT);
 
+print "Generated $configOutput based on $configTemplate\n";
+
 sub usage
 {
     print <<END_USAGE;
