@@ -45,3 +45,63 @@ spec:
     protocol: HTTPS
     name: https
 ---
+### The following are all of the central cluster (boutique2) services
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: frontendservice-entry
+spec:
+  hosts:
+  - frontend.boutique2.global
+  location: MESH_INTERNAL
+  ports:
+  - name: http1
+    number: 80
+    protocol: http
+  resolution: DNS
+  addresses:
+  - 240.0.0.5
+  endpoints:
+  - address: 35.192.70.66
+    ports:
+      http1: 15443
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: productcatalogservice-entry
+spec:
+  hosts:
+  - productcatalogservice.boutique2.global
+  location: MESH_INTERNAL
+  ports:
+  - name: grpc
+    number: 3550
+    protocol: GRPC
+  resolution: DNS
+  addresses:
+  - 240.0.0.6
+  endpoints:
+  - address: 35.192.70.66
+    ports:
+      grpc: 15443
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: cartservice-entry
+spec:
+  hosts:
+  - cartservice.boutique2.global
+  location: MESH_INTERNAL
+  ports:
+  - name: grpc
+    number: 7070
+    protocol: GRPC
+  resolution: DNS
+  addresses:
+  - 240.0.0.7
+  endpoints:
+  - address: 35.192.70.66
+    ports:
+      grpc: 15443

@@ -12,14 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: frontend-gateway
+spec:
+  selector:
+    istio: ingressgateway # use Istio default gateway implementation
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
 ---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: frontend-ingress
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - frontend-gateway
+  http:
+  - route:
+    - destination:
+        host: frontend
+        port:
+          number: 80
+---
+### The following are all of the remote cluster (boutique1) services
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
   name: adservice-entry
 spec:
   hosts:
-  - adservice.hipster1.global
+  - adservice.boutique1.global
   location: MESH_INTERNAL
   ports:
   - name: grpc
@@ -39,7 +71,7 @@ metadata:
   name: checkoutservice-entry
 spec:
   hosts:
-  - checkoutservice.hipster1.global
+  - checkoutservice.boutique1.global
   location: MESH_INTERNAL
   ports:
   - name: grpc
@@ -59,7 +91,7 @@ metadata:
   name: currencyservice-entry
 spec:
   hosts:
-  - currencyservice.hipster1.global
+  - currencyservice.boutique1.global
   location: MESH_INTERNAL
   ports:
   - name: grpc
@@ -79,7 +111,7 @@ metadata:
   name: shippingservice-entry
 spec:
   hosts:
-  - shippingservice.hipster1.global
+  - shippingservice.boutique1.global
   location: MESH_INTERNAL
   ports:
   - name: grpc
@@ -92,3 +124,4 @@ spec:
   - address: 104.154.171.66
     ports:
       grpc: 15443
+
