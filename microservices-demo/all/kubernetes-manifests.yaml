@@ -11,6 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,10 +37,12 @@ spec:
     metadata:
       labels:
         app: frontend
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"  
     spec:
       containers:
         - name: server
-          image: gcr.io/google-samples/microservices-demo/frontend:v0.1.0
+          image: gcr.io/google-samples/microservices-demo/frontend:v0.2.0
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -46,20 +62,22 @@ spec:
               - name: "Cookie"
                 value: "shop_session-id=x-liveness-probe"
           env:
+          - name: PORT
+            value: "8080"
           - name: PRODUCT_CATALOG_SERVICE_ADDR
-            value: "productcatalogservice.hipster2.svc.cluster.local:3550"
+            value: "productcatalogservice.boutique2.svc.cluster.local:3550"
           - name: CURRENCY_SERVICE_ADDR
-            value: "currencyservice.hipster2.svc.cluster.local:7000"
+            value: "currencyservice.boutique2.svc.cluster.local:7000"
           - name: CART_SERVICE_ADDR
-            value: "cartservice.hipster2.svc.cluster.local:7070"
+            value: "cartservice.boutique2.svc.cluster.local:7070"
           - name: RECOMMENDATION_SERVICE_ADDR
-            value: "recommendationservice.hipster2.svc.cluster.local:8080"
+            value: "recommendationservice.boutique2.svc.cluster.local:8080"
           - name: SHIPPING_SERVICE_ADDR
-            value: "shippingservice.hipster2.svc.cluster.local:50051"
+            value: "shippingservice.boutique2.svc.cluster.local:50051"
           - name: CHECKOUT_SERVICE_ADDR
-            value: "checkoutservice.hipster2.svc.cluster.local:5050"
+            value: "checkoutservice.boutique2.svc.cluster.local:5050"
           - name: AD_SERVICE_ADDR
-            value: "adservice.hipster2.svc.cluster.local:9555"
+            value: "adservice.boutique2.svc.cluster.local:9555"
           # - name: JAEGER_SERVICE_ADDR
           #   value: "jaeger-collector:14268"
           resources:
@@ -69,6 +87,19 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: productcatalogservice
+spec:
+  type: ClusterIP
+  selector:
+    app: productcatalogservice
+  ports:
+  - name: grpc
+    port: 3550
+    targetPort: 3550
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,9 +117,12 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.2.0
         ports:
         - containerPort: 3550
+        env:
+        - name: PORT
+          value: "3550"
         readinessProbe:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:3550"]
@@ -105,6 +139,19 @@ spec:
           limits:
             cpu: 200m
             memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartservice
+spec:
+  type: ClusterIP
+  selector:
+    app: cartservice
+  ports:
+  - name: grpc
+    port: 7070
+    targetPort: 7070
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -122,12 +169,12 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/cartservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/cartservice:v0.2.0
         ports:
         - containerPort: 7070
         env:
         - name: REDIS_ADDR
-          value: "" # use local redis
+          value: "redis-cart:6379"
         - name: PORT
           value: "7070"
         - name: LISTEN_ADDR
@@ -142,12 +189,25 @@ spec:
         readinessProbe:
           initialDelaySeconds: 15
           exec:
-            command: ["/bin/grpc_health_probe", "-addr=:7070"]
+            command: ["/bin/grpc_health_probe", "-addr=:7070", "-rpc-timeout=5s"]
         livenessProbe:
           initialDelaySeconds: 15
           periodSeconds: 10
           exec:
-            command: ["/bin/grpc_health_probe", "-addr=:7070"]
+            command: ["/bin/grpc_health_probe", "-addr=:7070", "-rpc-timeout=5s"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendationservice
+spec:
+  type: ClusterIP
+  selector:
+    app: recommendationservice
+  ports:
+  - name: grpc
+    port: 8080
+    targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -165,7 +225,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.2.0
         ports:
         - containerPort: 8080
         readinessProbe:
@@ -178,7 +238,7 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:8080"]
         env:
         - name: PRODUCT_CATALOG_SERVICE_ADDR
-          value: "productcatalogservice.hipster2.svc.cluster.local:3550"
+          value: "productcatalogservice.boutique2.svc.cluster.local:3550"
         resources:
           requests:
             cpu: 100m
@@ -186,6 +246,19 @@ spec:
           limits:
             cpu: 200m
             memory: 450Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emailservice
+spec:
+  type: ClusterIP
+  selector:
+    app: emailservice
+  ports:
+  - name: grpc
+    port: 5000
+    targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -203,9 +276,16 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/emailservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/emailservice:v0.2.0
         ports:
         - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        # - name: DISABLE_TRACING
+        #   value: "1"
+        - name: DISABLE_PROFILER
+          value: "1"
         readinessProbe:
           periodSeconds: 5
           exec:
@@ -222,6 +302,19 @@ spec:
             cpu: 200m
             memory: 128Mi
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkoutservice
+spec:
+  type: ClusterIP
+  selector:
+    app: checkoutservice
+  ports:
+  - name: grpc
+    port: 5050
+    targetPort: 5050
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -237,7 +330,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.1.0
+          image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.2.0
           ports:
           - containerPort: 5050
           readinessProbe:
@@ -248,17 +341,17 @@ spec:
               command: ["/bin/grpc_health_probe", "-addr=:5050"]
           env:
           - name: PRODUCT_CATALOG_SERVICE_ADDR
-            value: "productcatalogservice.hipster2.svc.cluster.local:3550"
+            value: "productcatalogservice.boutique2.svc.cluster.local:3550"
           - name: SHIPPING_SERVICE_ADDR
-            value: "shippingservice.hipster2.svc.cluster.local:50051"
+            value: "shippingservice.boutique2.svc.cluster.local:50051"
           - name: PAYMENT_SERVICE_ADDR
-            value: "paymentservice.hipster2.svc.cluster.local:50051"
+            value: "paymentservice.boutique2.svc.cluster.local:50051"
           - name: EMAIL_SERVICE_ADDR
-            value: "emailservice.hipster2.svc.cluster.local:5000"
+            value: "emailservice.boutique2.svc.cluster.local:5000"
           - name: CURRENCY_SERVICE_ADDR
-            value: "currencyservice.hipster2.svc.cluster.local:7000"
+            value: "currencyservice.boutique2.svc.cluster.local:7000"
           - name: CART_SERVICE_ADDR
-            value: "cartservice.hipster2.svc.cluster.local:7070"
+            value: "cartservice.boutique2.svc.cluster.local:7070"
           # - name: JAEGER_SERVICE_ADDR
           #   value: "jaeger-collector:14268"
           resources:
@@ -268,6 +361,19 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paymentservice
+spec:
+  type: ClusterIP
+  selector:
+    app: paymentservice
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -285,9 +391,12 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/paymentservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/paymentservice:v0.2.0
         ports:
         - containerPort: 50051
+        env:
+        - name: PORT
+          value: "50051"
         readinessProbe:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:50051"]
@@ -301,6 +410,19 @@ spec:
           limits:
             cpu: 200m
             memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyservice
+spec:
+  type: ClusterIP
+  selector:
+    app: currencyservice
+  ports:
+  - name: grpc
+    port: 7000
+    targetPort: 7000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -318,10 +440,13 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/currencyservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/currencyservice:v0.2.0
         ports:
         - name: grpc
           containerPort: 7000
+        env:
+        - name: PORT
+          value: "7000"
         readinessProbe:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:7000"]
@@ -335,6 +460,19 @@ spec:
           limits:
             cpu: 200m
             memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shippingservice
+spec:
+  type: ClusterIP
+  selector:
+    app: shippingservice
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -351,9 +489,12 @@ spec:
     spec:
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/shippingservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/shippingservice:v0.2.0
         ports:
         - containerPort: 50051
+        env:
+        - name: PORT
+          value: "50051"
         readinessProbe:
           periodSeconds: 5
           exec:
@@ -372,6 +513,19 @@ spec:
             cpu: 200m
             memory: 128Mi
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adservice
+spec:
+  type: ClusterIP
+  selector:
+    app: adservice
+  ports:
+  - name: grpc
+    port: 9555
+    targetPort: 9555
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -388,7 +542,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/google-samples/microservices-demo/adservice:v0.1.0
+        image: gcr.io/google-samples/microservices-demo/adservice:v0.2.0
         ports:
         - containerPort: 9555
         env:
@@ -414,45 +568,55 @@ spec:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:9555"]
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cart
+spec:
+  type: ClusterIP
+  selector:
+    app: redis-cart
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: loadgenerator
+  name: redis-cart
 spec:
   selector:
     matchLabels:
-      app: loadgenerator
-  replicas: 1
+      app: redis-cart
   template:
     metadata:
       labels:
-        app: loadgenerator
+        app: redis-cart
     spec:
-      terminationGracePeriodSeconds: 5
-      restartPolicy: Always
-      initContainers:
-      - name: wait-frontend
-        image: alpine:3.6
-        command: ['sh', '-c', 'set -x;  apk add --no-cache curl && 
-          until timeout -t 2 curl -f "http://${FRONTEND_ADDR}"; do 
-            echo "waiting for http://${FRONTEND_ADDR}"; 
-            sleep 2;
-          done;']
-        env:
-        - name: FRONTEND_ADDR
-          value: "frontend:80"
       containers:
-      - name: main
-        image: gcr.io/google-samples/microservices-demo/loadgenerator:v0.1.0
-        env:
-        - name: FRONTEND_ADDR
-          value: "frontend:80"
-        - name: USERS
-          value: "10"
+      - name: redis
+        image: redis:alpine
+        ports:
+        - containerPort: 6379
+        readinessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: 6379
+        livenessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: 6379
+        volumeMounts:
+        - mountPath: /data
+          name: redis-data
         resources:
-          requests:
-            cpu: 300m
-            memory: 256Mi
           limits:
-            cpu: 500m
-            memory: 512Mi      
+            memory: 256Mi
+            cpu: 125m
+          requests:
+            cpu: 70m
+            memory: 200Mi
+      volumes:
+      - name: redis-data
+        emptyDir: {}
