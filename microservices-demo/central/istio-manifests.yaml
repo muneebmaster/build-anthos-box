@@ -61,7 +61,7 @@ spec:
   addresses:
   - 240.0.0.2
   endpoints:
-  - address: 104.154.171.66
+  - address: 172.16.20.100
     ports:
       grpc: 15443
 ---
@@ -81,7 +81,7 @@ spec:
   addresses:
   - 240.0.0.3
   endpoints:
-  - address: 104.154.171.66
+  - address: 172.16.20.100
     ports:
       grpc: 15443
 ---
@@ -101,7 +101,7 @@ spec:
   addresses:
   - 240.0.0.4
   endpoints:
-  - address: 104.154.171.66
+  - address: 172.16.20.100
     ports:
       grpc: 15443
 ---
@@ -121,7 +121,7 @@ spec:
   addresses:
   - 240.0.0.8
   endpoints:
-  - address: 104.154.171.66
+  - address: 172.16.20.100
     ports:
       grpc: 15443
 
