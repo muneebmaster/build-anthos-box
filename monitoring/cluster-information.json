@@ -1,0 +1,79 @@
+{
+  "displayName": "GKE On-Prem Cluster Information",
+  "gridLayout": {
+    "columns": 1,
+    "widgets": [
+      {
+        "title": "Node Version",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"kubernetes.io/anthos/kubernetes_build_info\" resource.type=\"k8s_node\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_COUNT",
+                    "groupByFields": [
+                      "metric.label.\"gitVersion\"",
+                      "resource.label.\"project_id\"",
+                      "resource.label.\"cluster_name\"",
+                      "resource.label.\"node_name\"",
+                      "resource.label.\"location\""
+                    ]
+                  }
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "LINE",
+              "minAlignmentPeriod": "60s"
+            }
+          ],
+          "timeshiftDuration": "0s",
+          "yAxis": {
+            "label": "y1Axis",
+            "scale": "LINEAR"
+          },
+          "chartOptions": {
+            "mode": "COLOR"
+          }
+        }
+      },
+      {
+        "title": "Pod Count",
+        "xyChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"kubernetes.io/anthos/kube_pod_info\" resource.type=\"k8s_container\"",
+                  "aggregation": {
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_COUNT",
+                    "groupByFields": [
+                      "resource.label.\"project_id\"",
+                      "resource.label.\"cluster_name\"",
+                      "resource.label.\"location\""
+                    ]
+                  },
+                  "secondaryAggregation": {}
+                },
+                "unitOverride": "1"
+              },
+              "plotType": "LINE",
+              "minAlignmentPeriod": "60s"
+            }
+          ],
+          "timeshiftDuration": "0s",
+          "yAxis": {
+            "label": "y1Axis",
+            "scale": "LINEAR"
+          },
+          "chartOptions": {
+            "mode": "COLOR"
+          }
+        }
+      }
+    ]
+  }
+}
