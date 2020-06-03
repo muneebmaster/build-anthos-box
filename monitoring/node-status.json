@@ -119,7 +119,7 @@
             {
               "timeSeriesQuery": {
                 "timeSeriesFilter": {
-                  "filter": "metric.type=\"kubernetes.io/anthos/container_memory_working_set_bytes\" resource.type=\"k8s_node\" metric.label.\"container\"!=\"POD\" metric.label.\"container\"=monitoring.regex.full_match(\".*.*\")",
+                  "filter": "metric.type=\"kubernetes.io/anthos/node_memory_Active_bytes\" resource.type=\"k8s_container\"",
                   "aggregation": {
                     "perSeriesAligner": "ALIGN_MEAN",
                     "crossSeriesReducer": "REDUCE_SUM",
