@@ -24,6 +24,11 @@ adminWorkstation:
   # The disk size of the admin workstation in GB. It is recommended to use a disk
   # with at least 50 GB to host images decompressed from the bundle.
   diskGB: 50
+  # Name for the persistent disk to be mounted to the home directory (ending in .vmdk).
+  # Any directory in the supplied path must be created before deployment.
+  dataDiskName: gke-on-prem-admin-workstation-data-disk/admin-workstation.vmdk
+  # The size of the data disk in MB.
+  dataDiskMB: 512 
   network:
     # The IP allocation mode: 'dhcp' or 'static'
     ipAllocationMode: static
