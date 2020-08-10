@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 =head1 changelog
-2020/08/08 - 1.2
-Changelgo:
+2020/08/10 - 1.2
+Changelog:
 - Updating for Anthos 1.4.1, to intake 2 config files and generate 2 config files, i.e.
   one for admin cluster and one for user cluster
-- 
+- Modified CLI options and usage message
 
 2020/04/14 - 1.1
 Changelog:
@@ -238,72 +238,3 @@ Author:
 END_USAGE
 
 }
-
-=head1 old code, may not be needed
-elsif ($line =~ /^admincluster:/)
-    {
-        print CONFIG_OUT <<ADMINCLUSTER;
-$line
-  loadbalancerconfig:
-    ipblockfilepath: admin-lb-ipblock.yaml
-    vrid: 4
-    vip: 172.16.20.4
-    cpus: 4
-    memorymb: 8192
-    enableha: true
-    antiaffinitygroups:
-      enabled: false
-    network: internal vm network
-ADMINCLUSTER
-
-        my $skip = 1;
-        while (my $innerLine = <CONFIG>)
-        {
-            # Skip lines up until either the comment or parameter VIPs
-            $skip = 0 if ($innerLine =~ /vips/i);
-            next if ($skip);
-            chomp($innerLine);
-            
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.10/ if ($innerLine =~ /^\s+controlplanevip:/);
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.11/ if ($innerLine =~ /^\s+ingressvip:/);
-            #$innerLine =~ s/:\s+.*?$/: 172.16.20.12/ if ($innerLine =~ /^\s+addonsvip:/);
-
-            print CONFIG_OUT $innerLine . "\n";
-
-            last if ($innerLine =~ /^\s+ingressvip:/);           
-        }
-    }
-    elsif ($line =~ /^usercluster:/)
-    {
-        print CONFIG_OUT <<USERCLUSTER;
-$line
-  loadbalancerconfig:
-    ipblockfilepath: usercluster-1-lb-ipblock.yaml
-    vrid: 7
-    vip: 172.16.20.7
-    cpus: 4
-    memorymb: 8192
-    enableha: true
-    antiaffinitygroups:
-      enabled: false  
-    network: internal vm network
-USERCLUSTER
-
-        my $skip = 1;
-        while (my $innerLine = <CONFIG>)
-        {
-            # Skip lines up until either the comment or parameter VIPs
-            $skip = 0 if ($innerLine =~ /vips/i);
-            next if ($skip);
-            chomp($innerLine);
-            
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.13/ if ($innerLine =~ /^\s+controlplanevip:/);
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.14/ if ($innerLine =~ /^\s+ingressvip:/);
-            $innerLine =~ s/:\s+.*?$/: user-cluster1/ if ($innerLine =~ /^\s+clustername:/);
-
-            print CONFIG_OUT $innerLine . "\n";
-
-            last if ($innerLine =~ /^\s+clustername:/);           
-        }
-    }
-=cut
