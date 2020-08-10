@@ -1,5 +1,11 @@
 #!/usr/bin/perl
 =head1 changelog
+2020/08/08 - 1.2
+Changelgo:
+- Updating for Anthos 1.4.1, to intake 2 config files and generate 2 config files, i.e.
+  one for admin cluster and one for user cluster
+- 
+
 2020/04/14 - 1.1
 Changelog:
 - CLI option to set the clusterlocation for stackdriver configuration (-region)
@@ -14,17 +20,20 @@ use strict;
 use Getopt::Long;
 
 # Constants And Global Variables
-my $PROGRAM        = "generate-config"; 
-my $configTemplate = "/home/ubuntu/config.yaml";
-my $configOutput   = "bundled-lb-gkeop-config.yaml";
-my $datadisk       = "gke-on-prem-data-disk.vmdk";
-my $bundleDir      = "/var/lib/gke/bundles";
-my $defaultBundle  = "gke-onprem-vsphere-1.3.0-gke.16.tgz";
-my $gcpRegion      = "us-central1";
+my $PROGRAM             = "generate-config"; 
+my $adminConfigTemplate = "admin-cluster.yaml"; #"/home/ubuntu/admin-cluster.yaml";
+my $userConfigTemplate  = "user-cluster.yaml"; #"/home/ubuntu/user-cluster.yaml"
+my $adminConfigOutput   = "admin-cluster-gen.yaml";
+my $userConfigOutput    = "user-cluster-gen.yaml";
+my $datadisk            = "gke-on-prem-data-disk.vmdk";
+my $bundleDir           = "/var/lib/gke/bundles";
+my $defaultBundle       = "gke-onprem-vsphere-1.4.1-gke.1.tgz";
+my $gcpRegion           = "us-central1";
 
 my $help = 0;
 GetOptions("region=s" => \$gcpRegion,
-           "output=s" => \$configOutput,
+           "admin-output=s" => \$adminConfigOutput,
+           "user-output=s" => \$userConfigOutput,
            "help" => \$help);
 
 if ($help)
@@ -33,23 +42,24 @@ if ($help)
     exit(0);
 }
 
-if (! -e $configTemplate)
+if (! -e $adminConfigTemplate)
 {
-    die "ERROR: config.yaml not found in /home/ubuntu! Was gkeadm used to create the Admin Workstation?\n";
+    die "ERROR: admin-cluster.yaml not found in /home/ubuntu! Was gkeadm used to create the Admin Workstation?\n";
+}
+if (! -e $userConfigTemplate)
+{
+    die "ERROR: user-cluster.yaml not found in /home/ubuntu! Was gkeadm used to create the Admin Workstation?\n";
 }
 
-open (CONFIG, $configTemplate) or die "ERROR: Failed to open config.yaml: $!\n";
-open (CONFIG_OUT, ">" . $configOutput) or die "ERROR: Failed to open '$configOutput' to write to: $!\n";
-
-my $vcenter = 0;
-my $admincluster = 0;
-my $usercluster = 0;
+### Generate the admin cluster configuration
+open (CONFIG, $adminConfigTemplate) or die "ERROR: Failed to open admin-cluster.yaml: $!\n";
+open (CONFIG_OUT, ">" . $adminConfigOutput) or die "ERROR: Failed to open '$adminConfigOutput' to write to: $!\n";
 
 while (my $line = <CONFIG>)
 {
     chomp($line);
     
-    if ($line =~ /^bundlepath:/)
+    if ($line =~ /^bundlePath:/)
     {
         opendir (BUNDLE_DIR, $bundleDir) or do
             {
@@ -93,22 +103,144 @@ while (my $line = <CONFIG>)
         $line =~ s/:\s+.*?$/: ${bundleDir}\/${bundleFile}/;
         print CONFIG_OUT $line . "\n";
     }
-    elsif ($line =~ /^vcenter:/)
+    elsif ($line =~ /^vCenter:/)
     {
         print CONFIG_OUT $line . "\n";
 
         while (my $innerLine = <CONFIG>)
         {
             chomp($innerLine);
-            $innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
-            $innerLine =~ s/:\s+.*?$/: gke-on-prem-data-disk.vmdk/ if ($innerLine =~ /^\s+datadisk:/);
+            #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
+            $innerLine =~ s/:\s+.*?$/: gke-on-prem-data-disk.vmdk/ if ($innerLine =~ /^\s+dataDisk:/);
 
             print CONFIG_OUT $innerLine . "\n";
 
-            last if ($innerLine =~ /^\s+datadisk:/);
+            last if ($innerLine =~ /^\s+dataDisk:/);
         }
     }
-    elsif ($line =~ /^admincluster:/)
+    elsif ($line =~ /^loadBalancer:/)
+    {
+        print CONFIG_OUT $line . "\n";
+
+        while (my $innerLine = <CONFIG>)
+        {
+            chomp($innerLine);
+            $innerLine =~ s/:\s+.*?$/: 172.16.20.10/ if ($innerLine =~ /^\s+controlPlaneVIP:/);
+            #$innerLine =~ s/^\s+\#\s+(.*?):\s+.*?$/$1: 172.16.20.12/ if ($innerLine =~ /^\s+\#\s+addonsVIP:/);
+            $innerLine =~ s/:\s+.*?$/: admin-lb-ipblock.yaml/ if ($innerLine =~ /^\s+ipBlockFilePath:/);
+            $innerLine =~ s/:\s+.*?$/: 4/ if ($innerLine =~ /^\s+vrid:/);
+            $innerLine =~ s/:\s+.*?$/: 172.16.20.4/ if ($innerLine =~ /^\s+masterIP:/);
+            $innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+networkName:/);
+            $innerLine =~ s/:\s+.*?$/: true/ if ($innerLine =~ /^\s+enableHA:/);
+
+            print CONFIG_OUT $innerLine . "\n";
+
+            last if ($innerLine =~ /^\s+enableHA:/);
+        }
+    }
+    else
+    {
+        #$line =~ s/:\s+.*?$/: Bundled/ if ($line =~ /^lbmode:/);
+        $line =~ s/:\s+.*?$/: internal vm network/ if ($line =~ /^\s+networkName:/);
+        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
+
+        print CONFIG_OUT $line . "\n";
+    }
+}
+
+close(CONFIG);
+close(CONFIG_OUT);
+
+print "Generated $adminConfigOutput based on $adminConfigTemplate\n";
+
+### Generate the user cluster configuration
+open (CONFIG, $userConfigTemplate) or die "ERROR: Failed to open user-cluster.yaml: $!\n";
+open (CONFIG_OUT, ">" . $userConfigOutput) or die "ERROR: Failed to open '$userConfigOutput' to write to: $!\n";
+
+while (my $line = <CONFIG>)
+{
+    chomp($line);
+
+    if ($line =~ /^antiAffinityGroups:/)
+    {
+        print CONFIG_OUT $line . "\n";
+
+        while (my $innerLine = <CONFIG>)
+        {
+            chomp($innerLine);
+            #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
+            $innerLine =~ s/:\s+.*?$/: false/ if ($innerLine =~ /^\s+enabled:/);
+
+            print CONFIG_OUT $innerLine . "\n";
+
+            last if ($innerLine =~ /^\s+enabled:/);
+        }
+    }
+    else
+    {
+        $line =~ s/:\s+.*?$/: user-cluster1/ if ($line =~ /^name:/);
+        $line =~ s/:\s+.*?$/: internal vm network/ if ($line =~ /^\s+networkName:/);
+        $line =~ s/:\s+.*?$/: 172.16.20.13/ if ($line =~ /^\s+controlPlaneVIP:/);
+        $line =~ s/:\s+.*?$/: 172.16.20.14/ if ($line =~ /^\s+ingressVIP:/);
+        $line =~ s/:\s+.*?$/: usercluster-1-lb-ipblock.yaml/ if ($line =~ /^\s+ipBlockFilePath:/);
+        $line =~ s/:\s+.*?$/: 7/ if ($line =~ /^\s+vrid:/);
+        $line =~ s/:\s+.*?$/: 172.16.20.7/ if ($line =~ /^\s+masterIP:/);
+        $line =~ s/:\s+.*?$/: true/ if ($line =~ /^\s+enableHA:/);
+        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
+
+        print CONFIG_OUT $line . "\n";
+    }
+}
+
+close(CONFIG);
+close(CONFIG_OUT);
+
+print "Generated $userConfigOutput based on $userConfigTemplate\n";
+
+sub usage
+{
+    print <<END_USAGE;
+Usage:
+    $PROGRAM
+
+Optional Arguments:
+    -region
+        The GCP region where Stackdriver logs and metrics will be stored for this Anthos cluster.
+        Default: us-central1
+
+    -admin-output
+        Full path of the admin cluster's configuration file for output. 
+        Default: admin-cluster-gen.yaml
+
+    -user-output
+        Full path of the user cluster's configuration file for output. 
+        Default: user-cluster-gen.yaml
+
+    -help
+        Displays this usage message.
+
+Program Description:
+    Simple tool that reads the admin cluster (admin-cluster.yaml) and user cluster (user-cluster.yaml)
+    sample configuration files generated by gkeadm and generates modified versions for the build-anthos-box demo.
+    It assumes that gkeadm was used to generate the admin workstation, so expects to find
+    /home/ubuntu/config.yaml and gke-op install bundles in /var/lib/gke/bundles. By default, the output
+    configuration files are generated in cwd named admin-cluster-gen.yaml and user-cluster-gen.yaml
+    unless otherwise specified using optional cli parameters.
+
+Usage Examples:
+    $PROGRAM
+    $PROGRAM -region northamerica-northeast1
+
+Author:
+    Muneeb Master
+    Google, Inc.
+
+END_USAGE
+
+}
+
+=head1 old code, may not be needed
+elsif ($line =~ /^admincluster:/)
     {
         print CONFIG_OUT <<ADMINCLUSTER;
 $line
@@ -174,53 +306,4 @@ USERCLUSTER
             last if ($innerLine =~ /^\s+clustername:/);           
         }
     }
-    else
-    {
-        $line =~ s/:\s+.*?$/: Bundled/ if ($line =~ /^lbmode:/);
-        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterlocation:/);
-
-        print CONFIG_OUT $line . "\n";
-    }
-}
-
-close(CONFIG);
-close(CONFIG_OUT);
-
-print "Generated $configOutput based on $configTemplate\n";
-
-sub usage
-{
-    print <<END_USAGE;
-Usage:
-    $PROGRAM
-
-Optional Arguments:
-    -region
-        The GCP region where Stackdriver logs and metrics will be stored for this Anthos cluster.
-        Default: us-central1
-
-    -output
-        Full path of the output configuration file. 
-        Default: bundled-lb-gkeop-config.yaml
-
-    -help
-        Displays this usage message.
-
-Program Description:
-    Simple tool that reads the gkeadm generated config.yaml and modifies it for the build-anthos-box demo.
-    It assumes that gkeadm was used to generate the admin workstation, so expects to find
-    /home/ubuntu/config.yaml and gke-op install bundles in /var/lib/gke/bundles. By default, the output
-    configuration file is generated in cwd named bundled-lb-gkeop-config.yaml unless otherwise specified
-    with the output option.
-
-Usage Examples:
-    $PROGRAM
-    $PROGRAM -region northamerica-northeast1
-
-Author:
-    Muneeb Master
-    Google, Inc.
-
-END_USAGE
-
-}
+=cut
