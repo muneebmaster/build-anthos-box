@@ -22,7 +22,7 @@ use Getopt::Long;
 # Constants And Global Variables
 my $PROGRAM             = "generate-config"; 
 my $adminConfigTemplate = "/home/ubuntu/admin-cluster.yaml";
-my $userConfigTemplate  = "/home/ubuntu/user-cluster.yaml"
+my $userConfigTemplate  = "/home/ubuntu/user-cluster.yaml";
 my $adminConfigOutput   = "admin-cluster-gen.yaml";
 my $userConfigOutput    = "user-cluster-gen.yaml";
 my $datadisk            = "gke-on-prem-data-disk.vmdk";
