@@ -195,7 +195,8 @@ while (my $line = <CONFIG>)
 close(CONFIG);
 close(CONFIG_OUT);
 
-print "Generated $userConfigOutput based on $userConfigTemplate\n";
+print "Generated admin cluster configuration $adminConfigOutput based on $adminConfigTemplate\n";
+print "Generated user cluster configuration $userConfigOutput based on $userConfigTemplate\n";
 
 sub usage
 {
