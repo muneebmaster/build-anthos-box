@@ -151,7 +151,7 @@ while (my $line = <CONFIG>)
 close(CONFIG);
 close(CONFIG_OUT);
 
-print "Generated $adminConfigOutput based on $adminConfigTemplate\n";
+print "Generated admin cluster configuration $adminConfigOutput based on $adminConfigTemplate\n";
 
 ### Generate the user cluster configuration
 open (CONFIG, $userConfigTemplate) or die "ERROR: Failed to open user-cluster.yaml: $!\n";
@@ -195,7 +195,6 @@ while (my $line = <CONFIG>)
 close(CONFIG);
 close(CONFIG_OUT);
 
-print "Generated admin cluster configuration $adminConfigOutput based on $adminConfigTemplate\n";
 print "Generated user cluster configuration $userConfigOutput based on $userConfigTemplate\n";
 
 sub usage
