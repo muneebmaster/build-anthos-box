@@ -1,5 +1,10 @@
 #!/usr/bin/perl
 =head1 changelog
+2020/11/26 - 1.3
+Changelog:
+- Updated for Anthos 1.5.x and tested with Anthos 1.5.2
+
+
 2020/08/10 - 1.2
 Changelog:
 - Updating for Anthos 1.4.1, to intake 2 config files and generate 2 config files, i.e.
@@ -27,7 +32,7 @@ my $adminConfigOutput   = "admin-cluster-gen.yaml";
 my $userConfigOutput    = "user-cluster-gen.yaml";
 my $datadisk            = "gke-on-prem-data-disk.vmdk";
 my $bundleDir           = "/var/lib/gke/bundles";
-my $defaultBundle       = "gke-onprem-vsphere-1.4.1-gke.1.tgz";
+my $defaultBundle       = "gke-onprem-vsphere-1.5.2-gke.3.tgz";
 my $gcpRegion           = "us-central1";
 
 my $help = 0;
@@ -65,7 +70,7 @@ while (my $line = <CONFIG>)
             {
                 print "WARNING: Failed to open bundle directory '$bundleDir': $!\n";
                 print "WARNING: Using default bundle value: '$defaultBundle'\n";
-                $line =~ s/:\s+.*?$/: ${bundleDir}\/${defaultBundle}/;
+                $line =~ s/:\s+.*$/: ${bundleDir}\/${defaultBundle}/;
                 print CONFIG_OUT $line . "\n";
                 next;
             };
@@ -86,7 +91,7 @@ while (my $line = <CONFIG>)
         {
             print "WARNING: Did not find any bundles in bundle directory '$bundleDir'\n";
             print "WARNING: Using default bundle value: '$defaultBundle'\n";
-            $line =~ s/:\s+.*?$/: ${bundleDir}\/${defaultBundle}/;
+            $line =~ s/:\s+.*$/: ${bundleDir}\/${defaultBundle}/;
             print CONFIG_OUT $line . "\n";
             next;
         }
@@ -100,7 +105,7 @@ while (my $line = <CONFIG>)
 
         my $bundleFile = $bundles[0];
         # find the bundlepath in /var/lib/gke/
-        $line =~ s/:\s+.*?$/: ${bundleDir}\/${bundleFile}/;
+        $line =~ s/:\s+.*$/: ${bundleDir}\/${bundleFile}/;
         print CONFIG_OUT $line . "\n";
     }
     elsif ($line =~ /^vCenter:/)
@@ -111,7 +116,9 @@ while (my $line = <CONFIG>)
         {
             chomp($innerLine);
             #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
-            $innerLine =~ s/:\s+.*?$/: gke-on-prem-data-disk.vmdk/ if ($innerLine =~ /^\s+dataDisk:/);
+            $innerLine =~ s/:\s+.*$/: vcenter-creds.yamls/ if ($innerLine =~ /^\s+path:/);
+            $innerLine =~ s/:\s+.*$/: vcenter-creds/ if ($innerLine =~ /^\s+entry:/);
+            $innerLine =~ s/:\s+.*$/: gke-on-prem-data-disk.vmdk/ if ($innerLine =~ /^\s+dataDisk:/);
 
             print CONFIG_OUT $innerLine . "\n";
 
@@ -125,13 +132,13 @@ while (my $line = <CONFIG>)
         while (my $innerLine = <CONFIG>)
         {
             chomp($innerLine);
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.10/ if ($innerLine =~ /^\s+controlPlaneVIP:/);
+            $innerLine =~ s/:\s+.*$/: 172.16.20.10/ if ($innerLine =~ /^\s+controlPlaneVIP:/);
             #$innerLine =~ s/^\s+\#\s+(.*?):\s+.*?$/$1: 172.16.20.12/ if ($innerLine =~ /^\s+\#\s+addonsVIP:/);
-            $innerLine =~ s/:\s+.*?$/: admin-lb-ipblock.yaml/ if ($innerLine =~ /^\s+ipBlockFilePath:/);
-            $innerLine =~ s/:\s+.*?$/: 4/ if ($innerLine =~ /^\s+vrid:/);
-            $innerLine =~ s/:\s+.*?$/: 172.16.20.4/ if ($innerLine =~ /^\s+masterIP:/);
-            $innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+networkName:/);
-            $innerLine =~ s/:\s+.*?$/: true/ if ($innerLine =~ /^\s+enableHA:/);
+            $innerLine =~ s/:\s+.*$/: admin-lb-ipblock.yaml/ if ($innerLine =~ /^\s+ipBlockFilePath:/);
+            $innerLine =~ s/:\s+.*$/: 4/ if ($innerLine =~ /^\s+vrid:/);
+            $innerLine =~ s/:\s+.*$/: 172.16.20.4/ if ($innerLine =~ /^\s+masterIP:/);
+            $innerLine =~ s/:\s+.*$/: internal vm network/ if ($innerLine =~ /^\s+networkName:/);
+            $innerLine =~ s/:\s+.*$/: true/ if ($innerLine =~ /^\s+enableHA:/);
 
             print CONFIG_OUT $innerLine . "\n";
 
@@ -141,8 +148,8 @@ while (my $line = <CONFIG>)
     else
     {
         #$line =~ s/:\s+.*?$/: Bundled/ if ($line =~ /^lbmode:/);
-        $line =~ s/:\s+.*?$/: internal vm network/ if ($line =~ /^\s+networkName:/);
-        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
+        $line =~ s/:\s+.*$/: internal vm network/ if ($line =~ /^\s+networkName:/);
+        $line =~ s/:\s+.*$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
 
         print CONFIG_OUT $line . "\n";
     }
@@ -169,7 +176,7 @@ while (my $line = <CONFIG>)
         {
             chomp($innerLine);
             #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
-            $innerLine =~ s/:\s+.*?$/: false/ if ($innerLine =~ /^\s+enabled:/);
+            $innerLine =~ s/:\s+.*$/: false/ if ($innerLine =~ /^\s+enabled:/);
 
             print CONFIG_OUT $innerLine . "\n";
 
@@ -178,15 +185,15 @@ while (my $line = <CONFIG>)
     }
     else
     {
-        $line =~ s/:\s+.*?$/: user-cluster1/ if ($line =~ /^name:/);
-        $line =~ s/:\s+.*?$/: internal vm network/ if ($line =~ /^\s+networkName:/);
-        $line =~ s/:\s+.*?$/: 172.16.20.13/ if ($line =~ /^\s+controlPlaneVIP:/);
-        $line =~ s/:\s+.*?$/: 172.16.20.14/ if ($line =~ /^\s+ingressVIP:/);
-        $line =~ s/:\s+.*?$/: usercluster-1-lb-ipblock.yaml/ if ($line =~ /^\s+ipBlockFilePath:/);
-        $line =~ s/:\s+.*?$/: 7/ if ($line =~ /^\s+vrid:/);
-        $line =~ s/:\s+.*?$/: 172.16.20.7/ if ($line =~ /^\s+masterIP:/);
-        $line =~ s/:\s+.*?$/: true/ if ($line =~ /^\s+enableHA:/);
-        $line =~ s/:\s+.*?$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
+        $line =~ s/:\s+.*$/: user-cluster1/ if ($line =~ /^name:/);
+        $line =~ s/:\s+.*$/: internal vm network/ if ($line =~ /^\s+networkName:/);
+        $line =~ s/:\s+.*$/: 172.16.20.13/ if ($line =~ /^\s+controlPlaneVIP:/);
+        $line =~ s/:\s+.*$/: 172.16.20.14/ if ($line =~ /^\s+ingressVIP:/);
+        $line =~ s/:\s+.*$/: usercluster-1-lb-ipblock.yaml/ if ($line =~ /^\s+ipBlockFilePath:/);
+        $line =~ s/:\s+.*$/: 7/ if ($line =~ /^\s+vrid:/);
+        $line =~ s/:\s+.*$/: 172.16.20.7/ if ($line =~ /^\s+masterIP:/);
+        $line =~ s/:\s+.*$/: true/ if ($line =~ /^\s+enableHA:/);
+        $line =~ s/:\s+.*$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
 
         print CONFIG_OUT $line . "\n";
     }
