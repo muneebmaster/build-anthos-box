@@ -116,7 +116,7 @@ while (my $line = <CONFIG>)
         {
             chomp($innerLine);
             #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
-            $innerLine =~ s/:\s+.*$/: vcenter-creds.yamls/ if ($innerLine =~ /^\s+path:/);
+            $innerLine =~ s/:\s+.*$/: vcenter-creds.yaml/ if ($innerLine =~ /^\s+path:/);
             $innerLine =~ s/:\s+.*$/: vcenter-creds/ if ($innerLine =~ /^\s+entry:/);
             $innerLine =~ s/:\s+.*$/: gke-on-prem-data-disk.vmdk/ if ($innerLine =~ /^\s+dataDisk:/);
 
