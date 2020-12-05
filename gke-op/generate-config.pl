@@ -4,6 +4,10 @@
 Changelog:
 - Updated for Anthos 1.5.x and tested with Anthos 1.5.2
 
+TODO: 
+[WARNING] The hostConfig section in ipBlock file (admin-lb-ipblock.yaml) is being deprecated, please use network.hostConfig directly in your cluster config.yaml.
+
+
 
 2020/08/10 - 1.2
 Changelog:
@@ -138,11 +142,25 @@ while (my $line = <CONFIG>)
             $innerLine =~ s/:\s+.*$/: 4/ if ($innerLine =~ /^\s+vrid:/);
             $innerLine =~ s/:\s+.*$/: 172.16.20.4/ if ($innerLine =~ /^\s+masterIP:/);
             $innerLine =~ s/:\s+.*$/: internal vm network/ if ($innerLine =~ /^\s+networkName:/);
-            $innerLine =~ s/:\s+.*$/: true/ if ($innerLine =~ /^\s+enableHA:/);
+            #$innerLine =~ s/:\s+.*$/: true/ if ($innerLine =~ /^\s+enableHA:/);
 
             print CONFIG_OUT $innerLine . "\n";
 
             last if ($innerLine =~ /^\s+enableHA:/);
+        }
+    }
+    elsif ($line =~ /^antiAffinityGroups:/)
+    {
+        print CONFIG_OUT $line . "\n";
+
+        while (my $innerLine = <CONFIG>)
+        {
+            chomp($innerLine);
+            $innerLine =~ s/:\s+.*$/: false/ if ($innerLine =~ /^\s+enabled:/);
+
+            print CONFIG_OUT $innerLine . "\n";
+
+            last if ($innerLine =~ /^\s+enabled:/);
         }
     }
     else
@@ -175,7 +193,6 @@ while (my $line = <CONFIG>)
         while (my $innerLine = <CONFIG>)
         {
             chomp($innerLine);
-            #$innerLine =~ s/:\s+.*?$/: internal vm network/ if ($innerLine =~ /^\s+network:/);
             $innerLine =~ s/:\s+.*$/: false/ if ($innerLine =~ /^\s+enabled:/);
 
             print CONFIG_OUT $innerLine . "\n";
@@ -192,7 +209,7 @@ while (my $line = <CONFIG>)
         $line =~ s/:\s+.*$/: usercluster-1-lb-ipblock.yaml/ if ($line =~ /^\s+ipBlockFilePath:/);
         $line =~ s/:\s+.*$/: 7/ if ($line =~ /^\s+vrid:/);
         $line =~ s/:\s+.*$/: 172.16.20.7/ if ($line =~ /^\s+masterIP:/);
-        $line =~ s/:\s+.*$/: true/ if ($line =~ /^\s+enableHA:/);
+        #$line =~ s/:\s+.*$/: true/ if ($line =~ /^\s+enableHA:/);
         $line =~ s/:\s+.*$/: $gcpRegion/ if ($line =~ /^\s+clusterLocation:/);
 
         print CONFIG_OUT $line . "\n";
